@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>روبوت النصيحة الناطق</title>
+<style>
+  * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; min-height: 100vh;
+    display: flex; justify-content: center; align-items: flex-start;
+    background: radial-gradient(circle at 50% 30%, #2c3e91, #0f1440 70%);
+    color: #fff; padding: 15px;
+    -webkit-user-select: none; user-select: none;
+  }
+  .container {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 20px 18px; border-radius: 22px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    text-align: center; width: 100%; max-width: 460px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  h1 { margin: 0 0 5px; font-size: 19px; }
+  .subtitle { font-size: 12px; opacity: 0.75; margin-bottom: 8px; }
+
+  /* ===== الروبوت ===== */
+  .robot-stage {
+    height: 200px; display: flex;
+    align-items: flex-end; justify-content: center;
+    margin: 8px 0; position: relative;
+  }
+  .robot {
+    position: relative; width: 140px; height: 180px;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  .robot.talking { animation: talkShake 0.35s ease-in-out infinite; }
+  @keyframes talkShake {
+    0%,100% { transform: translateY(0) rotate(-2deg); }
+    50%     { transform: translateY(-8px) rotate(2deg); }
+  }
+  .antenna {
+    position: absolute; width: 4px; height: 25px;
+    background: linear-gradient(to top, #7ab8ff, #4a90e2);
+    top: 0; border-radius: 4px;
+  }
+  .antenna::after {
+    content: ''; position: absolute;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: radial-gradient(circle, #fff, #4a90e2);
+    top: -10px; left: -4px;
+    box-shadow: 0 0 15px #4a90e2;
+    animation: blinkLight 1.5s infinite;
+  }
+  @keyframes blinkLight { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .antenna.left  { left: 30px; }
+  .antenna.right { right: 30px; }
+  .head {
+    position: absolute; top: 25px; left: 50%;
+    transform: translateX(-50%);
+    width: 115px; height: 90px;
+    background: linear-gradient(145deg, #e8eef7, #b8c6d9);
+    border-radius: 20px; border: 3px solid #7a8ba3;
+    box-shadow:
+      inset 0 -10px 20px rgba(0,0,0,0.15),
+      inset 0 5px 15px rgba(255,255,255,0.5),
+      0 8px 20px rgba(0,0,0,0.4);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+  }
+  .eyes { display: flex; gap: 26px; margin-top: 5px; }
+  .eye {
+    width: 20px; height: 20px;
+    background: radial-gradient(circle at 30% 30%, #6cd3ff, #0b5aa8);
+    border-radius: 50%;
+    box-shadow: 0 0 12px #4fc3f7, inset 0 0 6px #000;
+    position: relative; animation: eyeBlink 4s infinite;
+  }
+  .eye::after {
+    content: ''; position: absolute;
+    top: 3px; left: 4px; width: 5px; height: 5px;
+    background: #fff; border-radius: 50%; opacity: 0.9;
+  }
+  @keyframes eyeBlink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+  .mouth {
+    width: 48px; height: 7px; background: #4a2b2b;
+    border-radius: 20px; transition: all 0.15s;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); margin-top: 3px;
+  }
+  .robot.talking .mouth { animation: mouthTalk 0.28s infinite; }
+  @keyframes mouthTalk {
+    0%,100% { height: 7px; width: 48px; border-radius: 20px; }
+    50%     { height: 20px; width: 38px; border-radius: 50%; }
+  }
+  .torso {
+    position: absolute; bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 95px; height: 65px;
+    background: linear-gradient(145deg, #d5dde8, #9aabc2);
+    border-radius: 16px 16px 10px 10px;
+    border: 3px solid #7a8ba3;
+    box-shadow:
+      inset 0 -8px 15px rgba(0,0,0,0.2),
+      0 6px 18px rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .torso-btn {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.2);
+    box-shadow: inset 0 -3px 5px rgba(0,0,0,0.3);
+  }
+  .torso-btn.red    { background: radial-gradient(circle at 30% 30%, #ff7676, #c0392b); }
+  .torso-btn.yellow { background: radial-gradient(circle at 30% 30%, #ffe082, #f39c12); animation: blinkLight 2s infinite; }
+  .torso-btn.green  { background: radial-gradient(circle at 30% 30%, #7bed9f, #27ae60); animation: blinkLight 1.2s infinite; }
+  .arm {
+    position: absolute; width: 16px; height: 48px;
+    background: linear-gradient(180deg, #d5dde8, #9aabc2);
+    border: 3px solid #7a8ba3; border-radius: 10px; top: 115px;
+  }
+  .arm.left  { left: -6px;  transform-origin: top center; transform: rotate(8deg); }
+  .arm.right { right: -6px; transform-origin: top center; transform: rotate(-8deg); }
+  .robot.talking .arm.left  { animation: waveLeft 0.5s infinite alternate; }
+  .robot.talking .arm.right { animation: waveRight 0.5s infinite alternate; }
+  @keyframes waveLeft  { from { transform: rotate(8deg); } to { transform: rotate(28deg); } }
+  @keyframes waveRight { from { transform: rotate(-8deg); } to { transform: rotate(-28deg); } }
+
+  /* ===== الفقاعة ===== */
+  .bubble {
+    position: relative; background: #fff; color: #1a1a1a;
+    padding: 12px; border-radius: 14px; margin: 10px 0;
+    min-height: 55px; font-size: 14px; line-height: 1.7;
+    display: flex; align-items: center; justify-content: center;
+    text-align: right;
+  }
+  .bubble::after {
+    content: ''; position: absolute; bottom: -10px; right: 50%;
+    transform: translateX(50%);
+    border: 10px solid transparent;
+    border-top-color: #fff; border-bottom: 0;
+  }
+
+  label {
+    display: block; text-align: right;
+    font-size: 13px; margin: 8px 0 5px; opacity: 0.9;
+  }
+  input, select {
+    width: 100%; padding: 14px; border-radius: 12px;
+    border: none; font-size: 16px; margin-bottom: 8px;
+    text-align: right; outline: none;
+    background: #fff; color: #222;
+    -webkit-appearance: none; appearance: none;
+  }
+  input { text-align: center; }
+  select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: left 12px center;
+    background-size: 16px;
+    padding-left: 35px;
+  }
+
+  button {
+    width: 100%; padding: 16px; border: none; border-radius: 12px;
+    color: #fff; font-size: 17px; font-weight: bold;
+    cursor: pointer; transition: 0.15s;
+    margin-bottom: 8px;
+    -webkit-appearance: none; appearance: none;
+    touch-action: manipulation;
+  }
+  button:active { transform: scale(0.97); }
+  #speakBtn { background: linear-gradient(135deg, #ff7e5f, #feb47b); }
+  #testBtn  { background: linear-gradient(135deg, #3498db, #2980b9); }
+  #unlockBtn{ background: linear-gradient(135deg, #27ae60, #16a085); }
+  #stopBtn  { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+  .status {
+    font-size: 12px; color: #ffe; opacity: 0.9;
+    margin-top: 8px; min-height: 20px; line-height: 1.5;
+    padding: 8px; background: rgba(0,0,0,0.2); border-radius: 8px;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🤖 روبوت النصيحة الناطق</h1>
+  <div class="subtitle">📱 مُحسّن للجوال • جميع اللهجات العربية</div>
+
+  <div class="robot-stage">
+    <div class="robot" id="robot">
+      <div class="antenna left"></div>
+      <div class="antenna right"></div>
+      <div class="head">
+        <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+        <div class="mouth"></div>
+      </div>
+      <div class="arm left"></div>
+      <div class="arm right"></div>
+      <div class="torso">
+        <div class="torso-btn red"></div>
+        <div class="torso-btn yellow"></div>
+        <div class="torso-btn green"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bubble" id="bubble">مرحباً! اضغطي الزر الأخضر أولاً لتفعيل الصوت 👇</div>
+
+  <!-- زر تفعيل الصوت - يظهر أول مرة فقط -->
+  <button id="unlockBtn">🎵 اضغطي هنا لتفعيل الصوت</button>
+
+  <div id="mainControls" class="hidden">
+    <label>✍️ اسم المرأة:</label>
+    <input type="text" id="nameInput" placeholder="اكتبي الاسم هنا" />
+
+    <label>🗣️ اختر اللهجة:</label>
+    <select id="dialectSelect">
+      <option value="sa">🇸🇦 سعودي</option>
+      <option value="eg">🇪🇬 مصري</option>
+      <option value="ae">🇦🇪 إماراتي</option>
+      <option value="kw">🇰🇼 كويتي</option>
+      <option value="qa">🇶🇦 قطري</option>
+      <option value="bh">🇧🇭 بحريني</option>
+      <option value="om">🇴🇲 عُماني</option>
+      <option value="ye">🇾🇪 يمني</option>
+      <option value="iq">🇮🇶 عراقي</option>
+      <option value="sy">🇸🇾 سوري</option>
+      <option value="lb">🇱🇧 لبناني</option>
+      <option value="jo">🇯🇴 أردني</option>
+      <option value="ps">🇵🇸 فلسطيني</option>
+      <option value="ma">🇲🇦 مغربي</option>
+      <option value="dz">🇩🇿 جزائري</option>
+      <option value="tn">🇹🇳 تونسي</option>
+      <option value="ly">🇱🇾 ليبي</option>
+      <option value="sd">🇸🇩 سوداني</option>
+      <option value="mr">🇲🇷 موريتاني</option>
+      <option value="fusha">📖 عربي فصيح</option>
+    </select>
+
+    <label>🔊 اختر الصوت:</label>
+    <select id="voiceSelect"><option>⏳ جاري التحميل...</option></select>
+
+    <button id="speakBtn">🔊 انطق النصيحة</button>
+    <button id="testBtn">🧪 اختبار الصوت</button>
+    <button id="stopBtn">⏹️ إيقاف</button>
+  </div>
+
+  <div class="status" id="status">في انتظار تفعيل الصوت...</div>
+</div>
+
+<script>
+  const nameInput     = document.getElementById('nameInput');
+  const speakBtn      = document.getElementById('speakBtn');
+  const testBtn       = document.getElementById('testBtn');
+  const stopBtn       = document.getElementById('stopBtn');
+  const unlockBtn     = document.getElementById('unlockBtn');
+  const mainControls  = document.getElementById('mainControls');
+  const bubble        = document.getElementById('bubble');
+  const robot         = document.getElementById('robot');
+  const voiceSelect   = document.getElementById('voiceSelect');
+  const dialectSelect = document.getElementById('dialectSelect');
+  const statusEl      = document.getElementById('status');
+
+  let voices = [];
+  let isUnlocked = false;
+
+  /* ============================================================
+     نصوص النصيحة بكل لهجة
+     ============================================================ */
+  const adviceTexts = {
+    fusha: (n) => `احترمي زوجك يا ${n}، فهو يصرف عليكِ ويتعب من أجلك، كوني له زوجة صالحة، وعامليه بالطيب والاحترام، واشكريه على ما يقدمه لكِ، فالشكر يزيد الخير والنعمة، واعلمي أن رضا الزوج من أسباب رضا الله، فاحرصي على بيتك وزوجك.`,
+    sa:    (n) => `اسمعي يا ${n}، احترمي زوجك، ترى هو اللي يصرف عليك ويتعب عشانك، كوني له زوجة سنعة، وعامليه بالطيب والاحترام، واشكريه على اللي يسويه لك، ترى الشكر يزيد النعمة، واعرفي إن رضا زوجك من رضا الله، فديري بالك على بيتك وزوجك.`,
+    eg:    (n) => `اسمعي يا ${n}، احترمي جوزك ده اللي بيصرف عليكي ويتعب عشانك، خليكي ست بيت سنعة، وعامليه بالطيب والاحترام، واشكريه على اللي بيعمله عشانك، لأن الشكر بيزيد النعمة، واعرفي إن رضا جوزك من رضا ربنا، فخلي بالك من بيتك وجوزك.`,
+    ae:    (n) => `اسمعي يا ${n}، احترمي ريلج، هذا اللي يصرف عليج ويتعب عشانج، كوني له حرمة سنعة، وعامليه بالطيب والاحترام، واشكريه على اللي يسويه لج، لأن الشكر يزيد النعمة، واعرفي إن رضا ريلج من رضا الله، فديري بالج على بيتج وريلج.`,
+    kw:    (n) => `اسمعي يا ${n}، احترمي ريلج، هذا اللي يصرف عليج ويتعب عشانج، كوني له مره سنعة، وعامليه بالطيب والاحترام، واشكريه على اللي يسويه لج، لأن الشكر يزيد النعمة، واعرفي إن رضا ريلج من رضا الله، فديري بالج على بيتج وريلج.`,
+    qa:    (n) => `اسمعي يا ${n}، احترمي ريلج، هذا اللي يصرف عليج ويتعب عشانج، كوني له حرمة سنعة، وعامليه بالطيب والاحترام، واشكريه على اللي يسويه لج، لأن الشكر يزيد النعمة، واعرفي إن رضا ريلج من رضا الله، فديري بالج على بيتج وريلج.`,
+    bh:    (n) => `اسمعي يا ${n}، احترمي ريلج، هذا اللي يصرف عليج ويتعب عشانج، كوني له حرمة سنعة، وعامليه بالطيب والاحترام، واشكريه على اللي يسويه لج، لأن الشكر يزيد النعمة، واعرفي إن رضا ريلج من رضا الله، فديري بالج على بيتج وريلج.`,
+    om:    (n) => `اسمعي يا ${n}، احترمي ريلج، هذا اللي يصرف عليج ويتعب عشانج، كوني له حرمة زينة، وعامليه بالطيب والاحترام، واشكريه على اللي يسويه لج، لأن الشكر يزيد النعمة، واعرفي إن رضا ريلج من رضا الله، فديري بالج على بيتج وريلج.`,
+    ye:    (n) => `اسمعي يا ${n}، احترمي زوجك، هذا اللي يصرف عليك ويتعب عشانك، كوني له زوجة صالحة، وعامليه بالطيب والاحترام، واشكريه على اللي يسويه لك، لأن الشكر يزيد النعمة، واعرفي إن رضا زوجك من رضا الله، فخلي بالك من بيتك وزوجك.`,
+    iq:    (n) => `اسمعي يا ${n}، احترمي زوجج، هذا اللي يصرف عليج ويتعب على شانج، كوني إله زوجة زينة، وعامليه بالطيب والاحترام، واشكريه على اللي يسويه إلج، لأن الشكر يزيد النعمة، واعرفي إن رضا زوجج من رضا الله، فديري بالج على بيتج وزوجج.`,
+    sy:    (n) => `اسمعي يا ${n}، احترمي جوزك، هاد اللي يصرف عليكي ويتعب عشانك، كوني إله مرا منيحة، وعامليه بالطيب والاحترام، واشكريه على اللي يعمله إلك، لأن الشكر يزيد النعمة، واعرفي إن رضا جوزك من رضا الله، فديري بالك على بيتك وجوزك.`,
+    lb:    (n) => `اسمعي يا ${n}، احترمي جوزك، هيدا اللي يصرف عليكي ويتعب عشانك، كوني إله مرا منيحة، وعامليه بالطيب والاحترام، واشكريه على اللي يعمله إلك، لأن الشكر يزيد النعمة، واعرفي إن رضا جوزك من رضا الله، فديري بالك على بيتك وجوزك.`,
+    jo:    (n) => `اسمعي يا ${n}، احترمي جوزك، هاد اللي بصرف عليكي وبتعب عشانك، كوني إله مرا منيحة، وعامليه بالطيب والاحترام، واشكريه على اللي بيعمله إلك، لأن الشكر يزيد النعمة، واعرفي إن رضا جوزك من رضا الله، فديري بالك على بيتك وجوزك.`,
+    ps:    (n) => `اسمعي يا ${n}، احترمي جوزك، هاد اللي بصرف عليكي وبتعب عشانك، كوني إله مرا منيحة، وعامليه بالطيب والاحترام، واشكريه على اللي بيعمله إلك، لأن الشكر يزيد النعمة، واعرفي إن رضا جوزك من رضا الله، فديري بالك على بيتك وجوزك.`,
+    ma:    (n) => `سمعي يا ${n}، احترمي راجلك، هادا اللي كيصرف عليك وكيتعب عليك، كوني ليه مرا صالحة، وعامليه بالزين والاحترام، وشكريه على اللي كيدير ليك، حيت الشكر كيزيد النعمة، وعرفي بلي رضا راجلك من رضا الله، فديري بالك على دارك وراجلك.`,
+    dz:    (n) => `اسمعي يا ${n}، احترمي راجلك، هذا اللي يصرف عليك ويتعب عليك، كوني ليه مرا صالحة، وعامليه بالزين والاحترام، وشكريه على اللي يدير ليك، على خاطر الشكر يزيد النعمة، واعرفي بلي رضا راجلك من رضا الله، فديري بالك على دارك وراجلك.`,
+    tn:    (n) => `اسمعي يا ${n}، احترمي راجلك، هذا اللي يصرف عليك ويتعب عليك، كوني ليه مرا صالحة، وعامليه بالزين والاحترام، وشكريه على اللي يعملو ليك، خاطر الشكر يزيد النعمة، واعرفي إلي رضا راجلك من رضا الله، فديري بالك على دارك وراجلك.`,
+    ly:    (n) => `اسمعي يا ${n}، احترمي راجلك، هذا اللي يصرف عليك ويتعب عليك، كوني ليه مرا صالحة، وعامليه بالزين والاحترام، وشكريه على اللي يديرو ليك، خاطر الشكر يزيد النعمة، واعرفي إن رضا راجلك من رضا الله، فديري بالك على دارك وراجلك.`,
+    sd:    (n) => `اسمعي يا ${n}، احترمي زوجك، ده اللي بصرف عليك وبتعب عشانك، كوني ليه مرا صالحة، وعامليه بالطيب والاحترام، واشكريه على اللي بيعملو ليك، لأن الشكر بزيد النعمة، واعرفي إن رضا زوجك من رضا الله، فديري بالك على بيتك وزوجك.`,
+    mr:    (n) => `اسمعي يا ${n}، احترمي راجلك، هذا اللي كيصرف عليك وكيتعب عليك، كوني ليه مرا صالحة، وعامليه بالزين والاحترام، وشكريه على اللي كيدير ليك، حيت الشكر كيزيد النعمة، وعرفي بلي رضا راجلك من رضا الله، فديري بالك على دارك وراجلك.`
+  };
+
+  /* ============================================================
+     تفعيل الصوت - الخطوة الأهم في الجوال
+     ============================================================ */
+  unlockBtn.addEventListener('click', () => {
+    // 1) تفعيل speechSynthesis بصوت صغير جداً
+    if ('speechSynthesis' in window) {
+      const silent = new SpeechSynthesisUtterance(' ');
+      silent.volume = 0.01;
+      silent.rate = 2;
+      try { window.speechSynthesis.speak(silent); } catch(e) {}
+    }
+
+    // 2) تفعيل AudioContext لبعض المتصفحات
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        const ctx = new AC();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0.0001;
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.05);
+        setTimeout(() => ctx.close(), 200);
+      }
+    } catch(e) {}
+
+    // 3) إظهار الواجهة الرئيسية
+    unlockBtn.classList.add('hidden');
+    mainControls.classList.remove('hidden');
+    isUnlocked = true;
+
+    // تحميل الأصوات
+    loadVoices();
+    setTimeout(loadVoices, 200);
+    setTimeout(loadVoices, 800);
+    setTimeout(loadVoices, 1500);
+
+    bubble.textContent = '✅ تم تفعيل الصوت! اكتبي الاسم واضغطي 🔊';
+    statusEl.textContent = '✅ الصوت مفعّل';
+  });
+
+  /* ============================================================
+     تحميل الأصوات
+     ============================================================ */
+  function loadVoices() {
+    if (!('speechSynthesis' in window)) {
+      voiceSelect.innerHTML = '<option>❌ المتصفح لا يدعم النطق</option>';
+      statusEl.textContent = '❌ متصفحك لا يدعم النطق، استخدمي Chrome';
+      return;
+    }
+
+    voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      voiceSelect.innerHTML = '<option>⏳ جاري التحميل...</option>';
+      return;
+    }
+
+    voiceSelect.innerHTML = '';
+    const arVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('ar'));
+    const others   = voices.filter(v => !v.lang || !v.lang.toLowerCase().startsWith('ar'));
+    const sorted   = [...arVoices, ...others];
+
+    sorted.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = voices.indexOf(v);
+      const mark = arVoices.includes(v) ? '🔊 ' : '🌐 ';
+      opt.textContent = `${mark}${v.name} (${v.lang || '?'})`;
+      voiceSelect.appendChild(opt);
+    });
+
+    if (arVoices.length > 0) {
+      statusEl.textContent = `✅ ${arVoices.length} صوت عربي متاح`;
+    } else if (voices.length > 0) {
+      statusEl.textContent = `⚠️ لا يوجد صوت عربي — ${voices.length} صوت بديل متاح`;
+    }
+  }
+
+  if ('speechSynthesis' in window) {
+    speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  /* ============================================================
+     النطق عبر speechSynthesis (يعمل على الجوال بعد التفعيل)
+     ============================================================ */
+  function speakText(text, onStart, onEnd) {
+    return new Promise((resolve) => {
+      if (!('speechSynthesis' in window)) {
+        resolve(false); return;
+      }
+
+      window.speechSynthesis.cancel();
+
+      const utter = new SpeechSynthesisUtterance(text);
+
+      // الصوت
+      const idx = parseInt(voiceSelect.value);
+      if (!isNaN(idx) && voices[idx]) {
+        utter.voice = voices[idx];
+        utter.lang = voices[idx].lang;
+      } else {
+        const ar = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ar'));
+        if (ar) { utter.voice = ar; utter.lang = ar.lang; }
+        else { utter.lang = 'ar-SA'; }
+      }
+
+      utter.rate = 0.95;
+      utter.pitch = 1.05;
+      utter.volume = 1;
+
+      utter.onstart = () => { if (onStart) onStart(); };
+      utter.onend   = () => { if (onEnd) onEnd(); resolve(true); };
+      utter.onerror = (e) => {
+        console.error('Speech error:', e);
+        statusEl.textContent = '❌ خطأ: ' + (e.error || 'غير معروف');
+        if (onEnd) onEnd();
+        resolve(false);
+      };
+
+      window.speechSynthesis.speak(utter);
+
+      // استئناف لو توقف
+      setTimeout(() => {
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      }, 150);
+    });
+  }
+
+  /* ============================================================
+     زر الاختبار
+     ============================================================ */
+  testBtn.addEventListener('click', async () => {
+    statusEl.textContent = '🧪 جاري اختبار الصوت...';
+    bubble.textContent = 'اختبار الصوت: واحد، اثنان، ثلاثة.';
+
+    const ok = await speakText(
+      'اختبار الصوت. واحد، اثنان، ثلاثة. الصوت يعمل.',
+      () => robot.classList.add('talking'),
+      () => robot.classList.remove('talking')
+    );
+
+    statusEl.textContent = ok ? '✅ الصوت يعمل — الآن اضغطي 🔊' : '❌ الصوت لا يعمل';
+  });
+
+  /* ============================================================
+     زر النطق
+     ============================================================ */
+  speakBtn.addEventListener('click', async () => {
+    const name = nameInput.value.trim();
+    if (!name) {
+      bubble.textContent = '⚠️ اكتبي الاسم أولاً';
+      nameInput.focus();
+      return;
+    }
+
+    if (voices.length === 0) loadVoices();
+
+    const textFn = adviceTexts[dialectSelect.value] || adviceTexts.fusha;
+    const text = textFn(name);
+    bubble.textContent = text;
+    statusEl.textContent = '🔊 جاري النطق...';
+
+    const ok = await speakText(
+      text,
+      () => robot.classList.add('talking'),
+      () => {
+        robot.classList.remove('talking');
+        statusEl.textContent = '✅ انتهى النطق';
+      }
+    );
+
+    if (!ok) statusEl.textContent = '❌ تعذّر النطق';
+  });
+
+  /* ============================================================
+     الإيقاف
+     ============================================================ */
+  stopBtn.addEventListener('click', () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    robot.classList.remove('talking');
+    statusEl.textContent = '⏹️ تم الإيقاف';
+  });
+
+  /* ============================================================
+     تحديث الفقاعة
+     ============================================================ */
+  function updateBubble() {
+    const name = nameInput.value.trim() || 'فاطمة';
+    const textFn = adviceTexts[dialectSelect.value] || adviceTexts.fusha;
+    bubble.textContent = textFn(name);
+  }
+  dialectSelect.addEventListener('change', updateBubble);
+  nameInput.addEventListener('input', updateBubble);
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') speakBtn.click(); });
+
+  // مهم للجوال: منع التكبير عند اللمس المزدوج
+  document.addEventListener('gesturestart', e => e.preventDefault());
+</script>
+
+</body>
+</html>
